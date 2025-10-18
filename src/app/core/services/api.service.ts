@@ -5,7 +5,7 @@ import {
   HttpParams,
 } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { catchError, Observable, throwError } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -15,20 +15,42 @@ export class ApiService {
 
   constructor(private _http: HttpClient) {}
 
-  public get<T>(endpoint: string, params?: HttpParams) {}
-
-  public post<T>(endpoint: string, body: any) {}
-
-  public delete<T>(endpoint: string) {}
-
-  private getHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Content-type': 'application/json',
-    });
+  public get<T>(endpoint: string, params?: HttpParams): Observable<T> {
+    return this._http
+      .get<T>(this._baseUrl + endpoint, {
+        headers: this.getHeaders(),
+        params,
+      })
+      .pipe(catchError((error) => this.handleError(error)));
   }
 
-  private handleError(error: HttpErrorResponse): never {
+  public post<T>(endpoint: string, body: any): Observable<T> {
+    return this._http
+      .post<T>(this._baseUrl + endpoint, body, {
+        headers: this.getHeaders(true),
+      })
+      .pipe(catchError((error) => this.handleError(error)));
+  }
+
+  public delete<T>(endpoint: string) {
+    this._http
+      .delete<T>(this._baseUrl + endpoint)
+      .pipe(catchError((error) => this.handleError(error)));
+  }
+
+  private getHeaders(isType: boolean = false): HttpHeaders {
+    let header = new HttpHeaders({
+      Accept: 'application/json',
+    });
+
+    if (isType) {
+      header = header.set('Content-type', 'application/json');
+    }
+    return header;
+  }
+
+  private handleError(error: HttpErrorResponse): Observable<never> {
     console.error('API Error:', error);
-    throw error;
+    return throwError(() => error);
   }
 }
